@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../navigation/app_router.dart';
 import '../../widgets/category_card.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/stat_card.dart';
 
 /// Permanent Dashboard screen — the application's home screen.
 ///
-/// Phase 02 scope: static, placeholder-driven UI only. No database,
-/// navigation, providers, or business logic are wired in yet. Statistics
-/// and category values below are hardcoded placeholders for layout
-/// verification and will be replaced by real data in a future phase.
+/// Layout is unchanged since Phase 02 (static, placeholder-driven UI).
+/// Phase 03 adds navigation only: category cards and the search icon now
+/// push their corresponding placeholder screens via [AppRouter]. Still no
+/// database, providers, or business logic. Statistics and category values
+/// below remain hardcoded placeholders.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -39,7 +41,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Search',
-            onPressed: () {},
+            onPressed: () => AppRouter.openSearch(context),
           ),
         ],
       ),
@@ -79,7 +81,7 @@ class HomeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
-            _buildCategories(),
+            _buildCategories(context),
           ],
         ),
       ),
@@ -103,7 +105,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategories() {
+  Widget _buildCategories(BuildContext context) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -119,10 +121,27 @@ class HomeScreen extends StatelessWidget {
         return CategoryCard(
           icon: category.icon,
           label: category.label,
-          // No action attached in Phase 02.
+          onTap: () => _handleCategoryTap(context, category.label),
         );
       },
     );
+  }
+
+  void _handleCategoryTap(BuildContext context, String label) {
+    switch (label) {
+      case 'Personal':
+        AppRouter.openPersonal(context);
+      case 'Corporate':
+        AppRouter.openCorporate(context);
+      case 'Share Market':
+        AppRouter.openShareMarket(context);
+      case 'Joint':
+        AppRouter.openJoint(context);
+      case 'Documents':
+        AppRouter.openDocuments(context);
+      case 'Information':
+        AppRouter.openInformation(context);
+    }
   }
 
   Widget _buildFab() {
