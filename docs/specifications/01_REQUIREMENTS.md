@@ -40,19 +40,25 @@ The Dashboard shall also provide:
 
 The application shall organize all data by Owner.
 
-Default Owners:
+During the first launch, the application shall require the user to create a Main Owner.
 
-- Vansh
+The Main Owner name is completely customizable.
+
+Examples:
+
+- Self
 - Father
 - Mother
-- Brother
 - Joint
+- Business
 
 Users shall be able to:
 
 - Add Owner
 - Rename Owner
 - Delete Owner (only if no linked records exist)
+
+Owner names are never hardcoded inside the application.
 
 ---
 
