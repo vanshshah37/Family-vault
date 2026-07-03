@@ -234,17 +234,33 @@ The application shall:
 
 ## 1.15 Synchronization
 
-The application shall:
+The application shall synchronize data using Google Drive.
 
-- Automatically sync after every change.
-- Use Google Drive.
-- Sync in the background.
-- Never interrupt the user.
-- Continue working while sync occurs.
+Synchronization Rules:
 
-Conflict Rule:
+- Every change shall be saved immediately to the local SQLite database.
+- The application shall mark the database as "Pending Sync" after each change.
+- If an internet connection is available, synchronization shall automatically begin after a short delay (approximately 5–10 seconds).
+- Multiple changes made within this time window shall be grouped into a single synchronization operation.
+- Synchronization shall occur in the background.
+- Users shall be able to continue using the application while synchronization is in progress.
+- If synchronization fails, the application shall keep the changes locally and automatically retry when internet becomes available.
+- The application shall always prioritize local data for normal operation.
 
-Latest Edit Wins.
+Conflict Resolution:
+
+- Latest Edit Wins.
+
+Synchronization Status:
+
+The application shall maintain one of the following states:
+
+- Synced
+- Pending Sync
+- Syncing
+- Sync Failed
+
+The current synchronization status shall be visible in the Settings screen.
 
 ---
 
