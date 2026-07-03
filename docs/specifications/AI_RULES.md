@@ -78,6 +78,16 @@ Never:
 
 ---
 
+# Package Installation Rule
+
+Dependencies shall be added only in the implementation phase where they are first required.
+
+Do not install future dependencies in advance.
+
+This keeps the project lightweight, reduces build complexity and minimizes dependency conflicts.
+
+---
+
 # Code Generation Rules
 
 Generated code must:
