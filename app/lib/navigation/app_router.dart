@@ -7,6 +7,7 @@ import '../features/joint/joint_screen.dart';
 import '../features/personal/personal_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/share_market/share_market_screen.dart';
+import '../features/universal_entry/universal_entry_screen.dart';
 
 /// Lightweight static navigation helper for Family Vault.
 ///
@@ -64,6 +65,13 @@ class AppRouter {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
+  }
+
+  static void openUniversalEntry(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UniversalEntryScreen()),
     );
   }
 }

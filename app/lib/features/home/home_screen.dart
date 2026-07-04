@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/categories.dart';
 import '../../navigation/app_router.dart';
 import '../../widgets/category_card.dart';
 import '../../widgets/dashboard_card.dart';
@@ -8,10 +9,10 @@ import '../../widgets/stat_card.dart';
 /// Permanent Dashboard screen — the application's home screen.
 ///
 /// Layout is unchanged since Phase 02 (static, placeholder-driven UI).
-/// Phase 03 adds navigation only: category cards and the search icon now
-/// push their corresponding placeholder screens via [AppRouter]. Still no
-/// database, providers, or business logic. Statistics and category values
-/// below remain hardcoded placeholders.
+/// Phase 03 added navigation for category cards and the search icon.
+/// Phase 04 wires the FAB to launch the Universal Entry wizard via
+/// [AppRouter]. Still no database, providers, or business logic.
+/// Category placeholders now come from the shared [kCategories] list.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -20,16 +21,6 @@ class HomeScreen extends StatelessWidget {
     _StatItem(icon: Icons.account_balance_wallet_rounded, value: '34', label: 'Accounts'),
     _StatItem(icon: Icons.description_rounded, value: '18', label: 'Documents'),
     _StatItem(icon: Icons.cloud_done_rounded, value: '2 days ago', label: 'Last Backup'),
-  ];
-
-  // Placeholder categories (Phase 02 — static values only).
-  static const List<_CategoryItem> _categories = [
-    _CategoryItem(icon: Icons.person_rounded, label: 'Personal'),
-    _CategoryItem(icon: Icons.business_rounded, label: 'Corporate'),
-    _CategoryItem(icon: Icons.show_chart_rounded, label: 'Share Market'),
-    _CategoryItem(icon: Icons.groups_rounded, label: 'Joint'),
-    _CategoryItem(icon: Icons.folder_rounded, label: 'Documents'),
-    _CategoryItem(icon: Icons.info_rounded, label: 'Information'),
   ];
 
   @override
@@ -46,7 +37,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: _buildBody(context),
-      floatingActionButton: _buildFab(),
+      floatingActionButton: _buildFab(context),
     );
   }
 
@@ -109,7 +100,7 @@ class HomeScreen extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _categories.length,
+      itemCount: kCategories.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 200,
         mainAxisSpacing: 12,
@@ -117,7 +108,7 @@ class HomeScreen extends StatelessWidget {
         childAspectRatio: 1.1,
       ),
       itemBuilder: (context, index) {
-        final category = _categories[index];
+        final category = kCategories[index];
         return CategoryCard(
           icon: category.icon,
           label: category.label,
@@ -144,11 +135,11 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildFab() {
+  Widget _buildFab(BuildContext context) {
     // Colors intentionally omitted — inherited from
     // AppTheme.lightTheme.floatingActionButtonTheme.
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: () => AppRouter.openUniversalEntry(context),
       child: const Icon(Icons.add),
     );
   }
@@ -164,16 +155,5 @@ class _StatItem {
 
   final IconData icon;
   final String value;
-  final String label;
-}
-
-/// Internal placeholder model for a single category entry.
-class _CategoryItem {
-  const _CategoryItem({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
   final String label;
 }
