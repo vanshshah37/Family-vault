@@ -4,14 +4,22 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.12.0 <4.0.0"
+  sdk: ^3.5.0
 
 # NOTE (Phase 01 scope):
 # Only packages actually used in this phase are declared below.
-# The remaining packages approved in 03_TECH_STACK.md (sqflite,
-# flutter_secure_storage, file_picker, image_picker, url_launcher,
-# google_sign_in, googleapis, path_provider, intl, uuid) are intentionally
-# NOT installed yet. Each will be added in the phase where it is first used.
+# The remaining packages approved in 03_TECH_STACK.md (flutter_secure_storage,
+# file_picker, image_picker, url_launcher, google_sign_in, googleapis, intl,
+# uuid) are intentionally NOT installed yet. Each will be added in the phase
+# where it is first used.
+#
+# NOTE (Phase 06 scope):
+# sqflite, sqflite_common_ffi, and path_provider added to enable local
+# persistence. sqflite_common_ffi is required in addition to sqflite
+# because plain sqflite has no Windows/desktop implementation — this
+# project targets both Android and Windows per 03_TECH_STACK.md, so the
+# FFI-backed desktop implementation is necessary, not optional. Approved
+# as an explicit exception alongside Phase 06.
 
 dependencies:
   flutter:
@@ -23,6 +31,18 @@ dependencies:
 
   # Default icon set bundled by the standard Flutter project template.
   cupertino_icons: ^1.0.8
+
+  # Local database (03_TECH_STACK.md) — Android implementation.
+  sqflite: ^2.4.1
+
+  # Desktop (Windows/Linux/macOS) FFI backend for sqflite. Required
+  # because plain sqflite does not support Windows, and this project's
+  # approved platform list includes Windows.
+  sqflite_common_ffi: ^2.3.4
+
+  # Resolves a writable, cross-platform directory for the database file
+  # (03_TECH_STACK.md approved package).
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:
