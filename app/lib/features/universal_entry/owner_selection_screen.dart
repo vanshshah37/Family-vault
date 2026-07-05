@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
-import 'confirmation_screen.dart';
+import 'dynamic_entry_screen.dart';
 
 /// Owner Selection — third step of the Universal Entry wizard.
 ///
 /// Receives the previously selected [category] via a constructor
 /// parameter (no providers/models/global state). Displays two placeholder
-/// owner options; tapping one pushes [ConfirmationScreen] with both
+/// owner options; tapping one pushes [DynamicEntryScreen] with both
 /// selections. No reusable "Owner Card" widget is created here — that
 /// component is reserved for a future phase per DESIGN_SYSTEM.md, so this
 /// screen builds its two tappable tiles via a private helper method to
@@ -48,7 +48,7 @@ class OwnerSelectionScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ConfirmationScreen(
+              builder: (_) => DynamicEntryScreen(
                 category: category,
                 owner: owner,
               ),
