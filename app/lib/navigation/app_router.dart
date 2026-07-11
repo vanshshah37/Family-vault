@@ -19,11 +19,18 @@ import '../features/universal_entry/universal_entry_screen.dart';
 /// creation flow (FAB → ... → Review → Finish) is unaffected and
 /// continues to navigate internally within `features/universal_entry/`,
 /// not through this router.
+///
+/// Phase 08: [openEntryList] and [openUniversalEntry] now return the
+/// `Future` from `Navigator.push` (instead of discarding it) so
+/// [HomeScreen] can `await` navigation completion and reload its live
+/// Dashboard statistics once control returns — regardless of how the
+/// pushed screen was exited (Back, Finish, Delete, etc.). [openSearch]
+/// is left unchanged since Search has no bearing on Dashboard statistics.
 class AppRouter {
   AppRouter._();
 
-  static void openEntryList(BuildContext context, String category) {
-    Navigator.push(
+  static Future<void> openEntryList(BuildContext context, String category) {
+    return Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => EntryListScreen(category: category),
@@ -38,8 +45,8 @@ class AppRouter {
     );
   }
 
-  static void openUniversalEntry(BuildContext context) {
-    Navigator.push(
+  static Future<void> openUniversalEntry(BuildContext context) {
+    return Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const UniversalEntryScreen()),
     );

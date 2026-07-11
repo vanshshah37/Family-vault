@@ -35,9 +35,10 @@ class ReviewEntryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Review')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
@@ -89,6 +90,7 @@ class ReviewEntryScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
