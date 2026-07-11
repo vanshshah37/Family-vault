@@ -8,9 +8,10 @@ import '../models/entry.dart';
 /// the database." No screen should import [DatabaseService] or `sqflite`
 /// directly — only this class.
 ///
-/// Scope for Phase 06 is intentionally narrow (save + load only); Update
-/// and Delete are explicitly excluded and will be added here in Phase 07
-/// without requiring any UI screen to change.
+/// Phase 06 added save/load; Phase 07 adds update/delete, completing the
+/// CRUD engine. No other methods are added — Search/Filter/Sort remain
+/// out of scope and, per the Architect Notes, will build on
+/// [EntryListScreen] rather than on new repository methods.
 class EntryRepository {
   EntryRepository({DatabaseService? databaseService})
       : _databaseService = databaseService ?? DatabaseService.instance;
@@ -26,5 +27,15 @@ class EntryRepository {
   Future<List<Entry>> loadEntries() async {
     final rows = await _databaseService.queryEntries();
     return rows.map(Entry.fromMap).toList();
+  }
+
+  /// Updates an existing [Entry] (matched by [Entry.id]). Phase 07.
+  Future<void> updateEntry(Entry entry) async {
+    await _databaseService.updateEntry(entry.id!, entry.toMap());
+  }
+
+  /// Permanently deletes the entry with the given [id]. Phase 07.
+  Future<void> deleteEntry(int id) async {
+    await _databaseService.deleteEntry(id);
   }
 }

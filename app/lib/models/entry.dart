@@ -75,4 +75,25 @@ class Entry {
       DatabaseConstants.columnData: data,
     };
   }
+
+  /// Returns a copy with the given fields replaced. Used by Phase 07's
+  /// Edit flow to produce an updated row (same [id]/[createdAt], new
+  /// [data]/[updatedAt]) without reconstructing the whole object by hand.
+  Entry copyWith({
+    int? id,
+    String? category,
+    String? owner,
+    String? createdAt,
+    String? updatedAt,
+    String? data,
+  }) {
+    return Entry(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      owner: owner ?? this.owner,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      data: data ?? this.data,
+    );
+  }
 }

@@ -64,4 +64,26 @@ class DatabaseService {
     final db = await _db;
     return db.query(DatabaseConstants.entriesTable);
   }
+
+  /// Updates the row with the given [id] using [values] (from
+  /// `Entry.toMap()`). No schema change — same table, same columns.
+  Future<int> updateEntry(int id, Map<String, Object?> values) async {
+    final db = await _db;
+    return db.update(
+      DatabaseConstants.entriesTable,
+      values,
+      where: '${DatabaseConstants.columnId} = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Permanently deletes the row with the given [id].
+  Future<int> deleteEntry(int id) async {
+    final db = await _db;
+    return db.delete(
+      DatabaseConstants.entriesTable,
+      where: '${DatabaseConstants.columnId} = ?',
+      whereArgs: [id],
+    );
+  }
 }

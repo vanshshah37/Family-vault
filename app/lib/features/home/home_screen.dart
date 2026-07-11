@@ -10,9 +10,12 @@ import '../../widgets/stat_card.dart';
 ///
 /// Layout is unchanged since Phase 02 (static, placeholder-driven UI).
 /// Phase 03 added navigation for category cards and the search icon.
-/// Phase 04 wires the FAB to launch the Universal Entry wizard via
-/// [AppRouter]. Still no database, providers, or business logic.
-/// Category placeholders now come from the shared [kCategories] list.
+/// Phase 04 wired the FAB to launch the Universal Entry wizard via
+/// [AppRouter]. Phase 07 retargets the category cards to open
+/// [EntryListScreen] (viewing/editing/deleting saved entries) instead of
+/// the Phase 03 placeholder screens. Still no database calls here
+/// directly — this screen only navigates. Category placeholders come
+/// from the shared [kCategories] list.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -112,27 +115,10 @@ class HomeScreen extends StatelessWidget {
         return CategoryCard(
           icon: category.icon,
           label: category.label,
-          onTap: () => _handleCategoryTap(context, category.label),
+          onTap: () => AppRouter.openEntryList(context, category.label),
         );
       },
     );
-  }
-
-  void _handleCategoryTap(BuildContext context, String label) {
-    switch (label) {
-      case 'Personal':
-        AppRouter.openPersonal(context);
-      case 'Corporate':
-        AppRouter.openCorporate(context);
-      case 'Share Market':
-        AppRouter.openShareMarket(context);
-      case 'Joint':
-        AppRouter.openJoint(context);
-      case 'Documents':
-        AppRouter.openDocuments(context);
-      case 'Information':
-        AppRouter.openInformation(context);
-    }
   }
 
   Widget _buildFab(BuildContext context) {

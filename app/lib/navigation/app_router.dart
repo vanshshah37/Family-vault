@@ -1,63 +1,33 @@
 import 'package:flutter/material.dart';
 
-import '../features/corporate/corporate_screen.dart';
-import '../features/documents/documents_screen.dart';
-import '../features/information/information_screen.dart';
-import '../features/joint/joint_screen.dart';
-import '../features/personal/personal_screen.dart';
+import '../features/entries/entry_list_screen.dart';
 import '../features/search/search_screen.dart';
-import '../features/share_market/share_market_screen.dart';
 import '../features/universal_entry/universal_entry_screen.dart';
 
 /// Lightweight static navigation helper for Family Vault.
 ///
 /// Wraps `Navigator.push` + `MaterialPageRoute` for every destination
 /// screen. Intentionally simple — one static method per destination, no
-/// named routes, no routing package, no `main.dart` changes. This keeps
-/// navigation calls out of [HomeScreen] and centralized in one place,
-/// while remaining easy to extend in later phases (e.g. Universal Entry).
+/// named routes, no routing package, no `main.dart` changes.
+///
+/// Phase 07: the Dashboard's category cards now open [EntryListScreen]
+/// (viewing/editing/deleting saved entries) instead of the Phase 03
+/// placeholder screens. Those 6 placeholder screens
+/// (`PersonalScreen`/`CorporateScreen`/etc.) still exist in the project
+/// but are intentionally left unused, per explicit instruction — not
+/// deleted, not referenced from here anymore. The Universal Entry
+/// creation flow (FAB → ... → Review → Finish) is unaffected and
+/// continues to navigate internally within `features/universal_entry/`,
+/// not through this router.
 class AppRouter {
   AppRouter._();
 
-  static void openPersonal(BuildContext context) {
+  static void openEntryList(BuildContext context, String category) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PersonalScreen()),
-    );
-  }
-
-  static void openCorporate(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const CorporateScreen()),
-    );
-  }
-
-  static void openShareMarket(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ShareMarketScreen()),
-    );
-  }
-
-  static void openJoint(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const JointScreen()),
-    );
-  }
-
-  static void openDocuments(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const DocumentsScreen()),
-    );
-  }
-
-  static void openInformation(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const InformationScreen()),
+      MaterialPageRoute(
+        builder: (_) => EntryListScreen(category: category),
+      ),
     );
   }
 

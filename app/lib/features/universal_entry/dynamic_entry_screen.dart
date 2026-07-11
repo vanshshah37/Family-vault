@@ -5,7 +5,8 @@ import '../../core/models/entry_value.dart';
 import '../../core/models/form_field_definition.dart';
 import 'review_entry_screen.dart';
 
-/// Dynamic Entry — fourth step of the Universal Entry wizard.
+/// Dynamic Entry — fourth step of the Universal Entry wizard, and also
+/// reused (unmodified renderer) by Phase 07's Edit flow.
 ///
 /// Renders a form generically from [kFormDefinitions] based on the
 /// [category] received via constructor. One reusable rendering mechanism
@@ -14,15 +15,36 @@ import 'review_entry_screen.dart';
 /// requires local [TextEditingController]s to read back what the user
 /// typed; nothing here is persisted or shared beyond this screen's
 /// lifetime.
+///
+/// Two modes, distinguished only by [onSubmit]:
+/// - **Create** (default, [onSubmit] null): unchanged since Phase 05 —
+///   fields start empty, submitting pushes [ReviewEntryScreen].
+/// - **Edit** ([onSubmit] provided, used by `EditEntryScreen`): fields
+///   are pre-filled from [initialValues], and submitting calls [onSubmit]
+///   directly instead of navigating to Review — the caller decides what
+///   "Save" means (an update + pop, in Edit's case). The field-rendering
+///   switch itself (`_buildField`) is identical in both modes — nothing
+///   about the renderer is duplicated.
 class DynamicEntryScreen extends StatefulWidget {
   const DynamicEntryScreen({
     super.key,
     required this.category,
     required this.owner,
+    this.initialValues,
+    this.onSubmit,
   });
 
   final String category;
   final String owner;
+
+  /// Pre-fills each field's controller by matching [FormFieldDefinition.label].
+  /// Ignored (fields start empty) when null — the Create-mode default.
+  final Map<String, String>? initialValues;
+
+  /// When provided, submitting calls this instead of pushing
+  /// [ReviewEntryScreen]. Signals Edit mode and changes the submit
+  /// button's label from "Review" to "Save".
+  final Future<void> Function(List<EntryValue> values)? onSubmit;
 
   @override
   State<DynamicEntryScreen> createState() => _DynamicEntryScreenState();
@@ -36,10 +58,10 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
   void initState() {
     super.initState();
     _fields = kFormDefinitions[widget.category] ?? const [];
-    _controllers = List.generate(
-      _fields.length,
-      (_) => TextEditingController(),
-    );
+    _controllers = List.generate(_fields.length, (index) {
+      final initial = widget.initialValues?[_fields[index].label];
+      return TextEditingController(text: initial ?? '');
+    });
   }
 
   @override
@@ -75,8 +97,8 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                onPressed: _goToReview,
-                child: const Text('Review'),
+                onPressed: widget.onSubmit != null ? _handleSave : _goToReview,
+                child: Text(widget.onSubmit != null ? 'Save' : 'Review'),
               ),
             ),
           ],
@@ -137,21 +159,27 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
     }
   }
 
-  void _goToReview() {
-    final values = [
+  List<EntryValue> _collectValues() {
+    return [
       for (var i = 0; i < _fields.length; i++)
         EntryValue(field: _fields[i].label, value: _controllers[i].text),
     ];
+  }
 
+  void _goToReview() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ReviewEntryScreen(
           category: widget.category,
           owner: widget.owner,
-          values: values,
+          values: _collectValues(),
         ),
       ),
     );
+  }
+
+  Future<void> _handleSave() async {
+    await widget.onSubmit!(_collectValues());
   }
 }
