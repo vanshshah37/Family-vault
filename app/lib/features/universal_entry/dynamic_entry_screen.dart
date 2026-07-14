@@ -25,6 +25,13 @@ import 'review_entry_screen.dart';
 ///   "Save" means (an update + pop, in Edit's case). The field-rendering
 ///   switch itself (`_buildField`) is identical in both modes — nothing
 ///   about the renderer is duplicated.
+///
+/// Phase 10 adds one centralized, config-driven validation layer on top
+/// of this same renderer — a single [Form]/[GlobalKey] and one private
+/// validator function, reused by both Create and Edit and by every field
+/// type. No per-category or per-field-type validator classes exist;
+/// [FormFieldDefinition.required] and [FormFieldDefinition.validationType]
+/// are the only inputs the validator reads.
 class DynamicEntryScreen extends StatefulWidget {
   const DynamicEntryScreen({
     super.key,
@@ -51,6 +58,8 @@ class DynamicEntryScreen extends StatefulWidget {
 }
 
 class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   late final List<FormFieldDefinition> _fields;
   late final List<TextEditingController> _controllers;
 
@@ -76,38 +85,46 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.category)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ListView.separated(
-                itemCount: _fields.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  return _buildField(_fields[index], _controllers[index]);
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _fields.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      return _buildField(_fields[index], _controllers[index]);
+                    },
+                  ),
                 ),
-                onPressed: widget.onSubmit != null ? _handleSave : _goToReview,
-                child: Text(widget.onSubmit != null ? 'Save' : 'Review'),
-              ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: widget.onSubmit != null ? _handleSave : _goToReview,
+                    child: Text(widget.onSubmit != null ? 'Save' : 'Review'),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   /// Single reusable rendering mechanism for all 4 supported field types.
+  /// Phase 10: each field now also wires up [_validate] as its
+  /// [TextFormField.validator] — the switch on [FormFieldType] still only
+  /// controls rendering/keyboard, never validation rules.
   Widget _buildField(
     FormFieldDefinition definition,
     TextEditingController controller,
@@ -116,19 +133,25 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
       case FormFieldType.text:
         return TextFormField(
           controller: controller,
+          keyboardType: definition.validationType == ValidationType.email
+              ? TextInputType.emailAddress
+              : TextInputType.text,
           decoration: InputDecoration(labelText: definition.label),
+          validator: (value) => _validate(definition, value),
         );
       case FormFieldType.multiline:
         return TextFormField(
           controller: controller,
           maxLines: 4,
           decoration: InputDecoration(labelText: definition.label),
+          validator: (value) => _validate(definition, value),
         );
       case FormFieldType.number:
         return TextFormField(
           controller: controller,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(labelText: definition.label),
+          validator: (value) => _validate(definition, value),
         );
       case FormFieldType.date:
         return TextFormField(
@@ -139,8 +162,57 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
             suffixIcon: const Icon(Icons.calendar_today_rounded),
           ),
           onTap: () => _pickDate(controller),
+          validator: (value) => _validate(definition, value),
         );
     }
+  }
+
+  /// The one centralized validator for every field, driven only by
+  /// [FormFieldDefinition.required] and [FormFieldDefinition.validationType]
+  /// (plus [FormFieldDefinition.type] for the date-specific real-date
+  /// check). No category-specific or field-specific branches exist here.
+  String? _validate(FormFieldDefinition definition, String? rawValue) {
+    final value = (rawValue ?? '').trim();
+
+    if (definition.required && value.isEmpty) {
+      return 'This field is required';
+    }
+    if (value.isEmpty) {
+      return null;
+    }
+
+    if (definition.type == FormFieldType.date) {
+      return _isRealDate(value) ? null : 'Please reselect a valid date';
+    }
+
+    switch (definition.validationType) {
+      case ValidationType.email:
+        final validEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value);
+        return validEmail ? null : 'Enter a valid email address';
+      case ValidationType.digitsOnly:
+        final validDigits = RegExp(r'^[0-9]+$').hasMatch(value);
+        return validDigits ? null : 'Enter digits only';
+      case ValidationType.none:
+        return null;
+    }
+  }
+
+  /// Validates that [value] is both shaped like dd/mm/yyyy and represents
+  /// a real calendar date (e.g. rejects 31/02/2026 and 99/99/2026) rather
+  /// than only checking the regex shape.
+  bool _isRealDate(String value) {
+    final match = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(value);
+    if (match == null) return false;
+
+    final day = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final year = int.parse(match.group(3)!);
+
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    final parsed = DateTime(year, month, day);
+    return parsed.year == year && parsed.month == month && parsed.day == day;
   }
 
   Future<void> _pickDate(TextEditingController controller) async {
@@ -159,14 +231,21 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
     }
   }
 
+  /// Trims every value before handing it to Create or Edit — the single
+  /// shared normalization point for both flows.
   List<EntryValue> _collectValues() {
     return [
       for (var i = 0; i < _fields.length; i++)
-        EntryValue(field: _fields[i].label, value: _controllers[i].text),
+        EntryValue(
+          field: _fields[i].label,
+          value: _controllers[i].text.trim(),
+        ),
     ];
   }
 
   void _goToReview() {
+    if (!_formKey.currentState!.validate()) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -180,6 +259,8 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
   }
 
   Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
     await widget.onSubmit!(_collectValues());
   }
 }
