@@ -1,0 +1,124 @@
+rules_version = '2';
+
+// Family Vault — Phase 11 Security Rules
+//
+// Covers: users/{uid}, vaults/{vaultId}, vaults/{vaultId}/members/{uid},
+// vaults/{vaultId}/joinRequests/{uid}. No Entry/sync collections exist
+// yet — that is explicitly Phase 12 scope and is not touched here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnUid(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // users/{uid} — every user manages only their own profile document;
+    // any signed-in user may read a profile (needed to show a member's
+    // displayName/photo without a second lookup elsewhere).
+    match /users/{uid} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow write: if isOwnUid(uid);
+    }
+
+    match /vaults/{vaultId} {
+
+      // True only for an existing member of THIS vault. Deliberately
+      // does not depend on `resource` (the document being read) — it's
+      // a property of the requester + the fixed `vaultId` path segment,
+      // which lets it be used safely inside `list` rules further below
+      // (Firestore can validate a query-independent condition against
+      // an entire query's potential result set; a `resource`-dependent
+      // condition can only be validated when it mirrors the query's own
+      // `where` filter exactly).
+      function isVaultMember() {
+        return isSignedIn() &&
+          exists(/databases/$(database)/documents/vaults/$(vaultId)/members/$(request.auth.uid));
+      }
+
+      function isVaultOwner() {
+        return isSignedIn() &&
+          get(/databases/$(database)/documents/vaults/$(vaultId)/members/$(request.auth.uid)).data.role == 'owner';
+      }
+
+      // The top-level vault document intentionally carries only
+      // non-sensitive fields (name/ownerUid/createdAt) — no member
+      // list, no request data. Any signed-in user may `get` it directly
+      // by ID, so a non-member can confirm a Vault ID exists before
+      // sending a join request (design item 32) without learning
+      // anything about who's actually in the vault. `list` (scanning/
+      // enumerating every vault) is never allowed, at any auth level.
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      // Vault creation always happens inside
+      // VaultRepository.createVault's transaction, which writes this
+      // document and the creator's own `owner` membership document
+      // together. Requiring `ownerUid == request.auth.uid` here ties
+      // creation to "you become the owner", matching that transaction.
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+
+      // No vault rename, delete, or ownership transfer in Phase 11.
+      allow update, delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isVaultMember();
+
+        // Handles two distinct query shapes against the same rule:
+        //  (a) "list every member of THIS vault" (plain subcollection
+        //      query, no filter) — satisfied by `isVaultMember()`,
+        //      which holds uniformly for the whole query regardless of
+        //      which member document is returned.
+        //  (b) "find every vault I'm a member of" (the app's
+        //      `collectionGroup('members').where('uid', isEqualTo: uid)`
+        //      query, design item 27) — satisfied by
+        //      `resource.data.uid == request.auth.uid`, which mirrors
+        //      that filter exactly so Firestore can validate it without
+        //      per-document reads.
+        allow list: if isVaultMember() || (isSignedIn() && resource.data.uid == request.auth.uid);
+
+        // A membership document is created in exactly two situations,
+        // both inside a transaction: the vault creator writing their
+        // own `owner` row, or the vault owner accepting a join request
+        // and writing the new `member` row.
+        allow create: if isSignedIn() && (
+          (memberUid == request.auth.uid && request.resource.data.role == 'owner') ||
+          (isVaultOwner() && request.resource.data.role == 'member')
+        );
+        allow update: if false; // no role changes in Phase 11
+        allow delete: if isVaultOwner() && memberUid != request.auth.uid; // owner can't remove themself
+      }
+
+      match /joinRequests/{requestUid} {
+        // A requester may read their own request (to show/re-check the
+        // "Request Sent" state); the owner may read any request in
+        // their vault (to build the pending-requests list).
+        allow get: if isSignedIn() && (request.auth.uid == requestUid || isVaultOwner());
+
+        // Owner-only, plain subcollection query scoped to one vaultId
+        // (`.where('status', isEqualTo: 'pending')`) — not a
+        // collection-group query, so `isVaultOwner()` alone (uniform
+        // across the whole query) is sufficient.
+        allow list: if isVaultOwner();
+
+        // A user may only create/re-create their OWN request, only in
+        // `pending` status, and only if they are not already a member
+        // (design items 36-38).
+        allow create: if isOwnUid(requestUid) &&
+          request.resource.data.status == 'pending' &&
+          !exists(/databases/$(database)/documents/vaults/$(vaultId)/members/$(requestUid));
+
+        // Only the owner may transition a request to accepted/rejected
+        // (design items 40-42).
+        allow update: if isVaultOwner() &&
+          request.resource.data.status in ['accepted', 'rejected'];
+
+        allow delete: if false;
+      }
+    }
+  }
+}
