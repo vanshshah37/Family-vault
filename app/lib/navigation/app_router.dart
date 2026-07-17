@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/entries/entry_list_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/universal_entry/universal_entry_screen.dart';
+import '../features/vault/vault_settings_screen.dart';
 
 /// Lightweight static navigation helper for Family Vault.
 ///
@@ -26,6 +27,15 @@ import '../features/universal_entry/universal_entry_screen.dart';
 /// Dashboard statistics once control returns — regardless of how the
 /// pushed screen was exited (Back, Finish, Delete, etc.). [openSearch]
 /// is left unchanged since Search has no bearing on Dashboard statistics.
+///
+/// Phase 11: adds [openVaultSettings] for the one approved Dashboard
+/// AppBar action (Vault Name/ID, Members, Pending Join Requests, Sign
+/// Out — see [VaultSettingsScreen]). Sign-in, vault-gate, vault
+/// selection, and create/join-vault navigation intentionally do NOT go
+/// through this router: they use `pushReplacement`/`pushAndRemoveUntil`
+/// directly at their call sites, since they replace the navigation stack
+/// rather than pushing a normal back-able destination — see
+/// `lib/features/auth/` and `lib/features/vault/` for that flow.
 class AppRouter {
   AppRouter._();
 
@@ -49,6 +59,15 @@ class AppRouter {
     return Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const UniversalEntryScreen()),
+    );
+  }
+
+  static Future<void> openVaultSettings(BuildContext context, String vaultId) {
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VaultSettingsScreen(vaultId: vaultId),
+      ),
     );
   }
 }
