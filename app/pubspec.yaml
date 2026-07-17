@@ -20,6 +20,27 @@ environment:
 # project targets both Android and Windows per 03_TECH_STACK.md, so the
 # FFI-backed desktop implementation is necessary, not optional. Approved
 # as an explicit exception alongside Phase 06.
+#
+# NOTE (Phase 11 scope):
+# Cloud authentication + shared vault dependencies added below. Final list
+# per the approved, revised Phase 11 design — minimized after researching
+# Windows Google Sign-In:
+#   - firebase_core / firebase_auth / cloud_firestore: official Firebase
+#     packages; Windows is a supported platform for all three directly,
+#     no separate "_desktop" delegate packages needed.
+#   - google_sign_in: official, Android-only sign-in flow.
+#   - desktop_webview_auth: Windows Google Sign-In via a native WebView.
+#     Maintained by Invertase (verified publisher, the same organization
+#     that builds and maintains FlutterFire) — the current best-maintained
+#     answer to google_sign_in's lack of Windows support. Verified as the
+#     current version compatible with this project's Dart SDK constraint
+#     immediately before adding it (see Phase 11 final design notes).
+#   - share_plus: "Share Vault ID" button — native share sheet, no
+#     first-party Flutter API covers this; fluttercommunity.dev maintained,
+#     supports both Android and Windows.
+# Explicitly NOT added: oauth2, crypto, url_launcher, uuid,
+# firebase_auth_desktop/firebase_core_desktop, flutter_secure_storage —
+# none proved necessary once desktop_webview_auth was chosen.
 
 dependencies:
   flutter:
@@ -43,6 +64,30 @@ dependencies:
   # Resolves a writable, cross-platform directory for the database file
   # (03_TECH_STACK.md approved package).
   path_provider: ^2.1.4
+
+  # --- Phase 11: cloud authentication + shared vaults ---
+
+  # Firebase bootstrap. Required by every other Firebase package below.
+  firebase_core: ^4.12.1
+
+  # Auth state (authStateChanges), Google credential sign-in, sign-out.
+  # Officially supports Android and Windows.
+  firebase_auth: ^6.4.0
+
+  # Vaults / members / join-requests storage. Officially supports
+  # Android and Windows.
+  cloud_firestore: ^6.4.1
+
+  # Android Google Sign-In (official; Android/iOS/Web only).
+  google_sign_in: ^7.0.0
+
+  # Windows Google Sign-In via native WebView OAuth. Maintained by
+  # Invertase (FlutterFire's maintainers, verified pub.dev publisher).
+  # Only used on Platform.isWindows — see lib/services/auth_service.dart.
+  desktop_webview_auth: ^0.0.16
+
+  # "Share Vault ID" button — native share sheet on Android and Windows.
+  share_plus: ^13.1.0
 
 dev_dependencies:
   flutter_test:
