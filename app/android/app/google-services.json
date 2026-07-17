@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "736359499529",
+    "project_id": "family-vault-2bf9d",
+    "storage_bucket": "family-vault-2bf9d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:736359499529:android:9ad85aea631c9a7343b5d8",
+        "android_client_info": {
+          "package_name": "com.example.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3ZEXGH0jhy-jVjYa1ZmAQDUIDlSDtqhw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
