@@ -19,8 +19,17 @@ import '../../widgets/stat_card.dart';
 /// methods, no Riverpod/Provider/streams, no schema changes. The FAB and
 /// category navigation calls are now awaited so the Dashboard can reload
 /// its statistics whenever control returns.
+///
+/// Phase 11: the Dashboard is now scoped to a specific vault ([vaultId],
+/// required — the app never reaches this screen without one, per
+/// AuthGateScreen → VaultGateScreen). The only other change is one new
+/// approved AppBar action opening [VaultSettingsScreen] (Vault Name/ID,
+/// Members, Pending Join Requests, Sign Out) — everything else on this
+/// screen (Welcome card, Statistics, Categories, FAB) is untouched.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.vaultId});
+
+  final String vaultId;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -134,6 +143,15 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Search',
             onPressed: () => AppRouter.openSearch(context),
+          ),
+          // Phase 11: the one approved exception to DESIGN_SYSTEM.md's
+          // "no hamburger, no profile, no settings" App Bar rule —
+          // opens Vault Name/ID, Members, Pending Join Requests, and
+          // Sign Out in one place.
+          IconButton(
+            icon: const Icon(Icons.group_rounded),
+            tooltip: 'Vault Settings',
+            onPressed: () => AppRouter.openVaultSettings(context, widget.vaultId),
           ),
         ],
       ),
