@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/form_definitions.dart';
 import '../../core/models/entry_value.dart';
 import '../../core/models/form_field_definition.dart';
+import '../../widgets/password_form_field.dart';
 import 'review_entry_screen.dart';
 
 /// Dynamic Entry — fourth step of the Universal Entry wizard, and also
@@ -32,6 +33,14 @@ import 'review_entry_screen.dart';
 /// type. No per-category or per-field-type validator classes exist;
 /// [FormFieldDefinition.required] and [FormFieldDefinition.validationType]
 /// are the only inputs the validator reads.
+///
+/// Phase 12 adds exactly one new branch to [_buildField]: a field with
+/// [FormFieldDefinition.isPassword] set renders via [PasswordFormField]
+/// (obscured, show/hide toggle, live strength meter) instead of a plain
+/// [TextFormField] — everything else about the renderer, including the
+/// centralized [_validate] function, is untouched. Because this reads
+/// [FormFieldDefinition.isPassword] (defaulting to `false`), every field
+/// in every category that doesn't opt in renders exactly as before.
 class DynamicEntryScreen extends StatefulWidget {
   const DynamicEntryScreen({
     super.key,
@@ -121,14 +130,23 @@ class _DynamicEntryScreenState extends State<DynamicEntryScreen> {
     );
   }
 
-  /// Single reusable rendering mechanism for all 4 supported field types.
-  /// Phase 10: each field now also wires up [_validate] as its
-  /// [TextFormField.validator] — the switch on [FormFieldType] still only
-  /// controls rendering/keyboard, never validation rules.
+  /// Single reusable rendering mechanism for all 4 supported field types,
+  /// plus the one Phase 12 addition: a password-marked field short-
+  /// circuits to [PasswordFormField] before the [FormFieldType] switch
+  /// is ever reached — the switch itself is completely unmodified.
   Widget _buildField(
     FormFieldDefinition definition,
     TextEditingController controller,
   ) {
+    if (definition.isPassword) {
+      return PasswordFormField(
+        controller: controller,
+        label: definition.label,
+        validator: (value) => _validate(definition, value),
+        showStrengthIndicator: true,
+      );
+    }
+
     switch (definition.type) {
       case FormFieldType.text:
         return TextFormField(
