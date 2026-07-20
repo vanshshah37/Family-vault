@@ -8,6 +8,16 @@ import '../models/form_field_definition.dart';
 ///
 /// Phase 10 adds per-field `required` and `validationType` — rendering
 /// (`type`) is unchanged; only validation metadata is new.
+///
+/// Phase 12 adds `Website`/`Username`/`Password`/`Notes` fields to
+/// 'Share Market' — the one existing category that already implies an
+/// online account (a broker/trading-account login), and so far the only
+/// category with any field marked `isPassword`/`isUsername`/
+/// `isSearchable`. This is a deliberate, flagged assumption rather than
+/// an instruction from Phase 12's spec (which never named a category) —
+/// every other category is untouched, and these four new fields are all
+/// optional (`required: false`), so existing 'Share Market' entries
+/// remain fully valid without needing to be re-saved.
 const Map<String, List<FormFieldDefinition>> kFormDefinitions = {
   'Personal': [
     FormFieldDefinition(
@@ -47,6 +57,28 @@ const Map<String, List<FormFieldDefinition>> kFormDefinitions = {
     ),
     FormFieldDefinition(label: 'Demat Number', type: FormFieldType.text),
     FormFieldDefinition(label: 'Trading Account', type: FormFieldType.text),
+    // --- Phase 12: login fields for the broker's online portal ---
+    FormFieldDefinition(
+      label: 'Website',
+      type: FormFieldType.text,
+      isSearchable: true,
+    ),
+    FormFieldDefinition(
+      label: 'Username',
+      type: FormFieldType.text,
+      isUsername: true,
+      isSearchable: true,
+    ),
+    FormFieldDefinition(
+      label: 'Password',
+      type: FormFieldType.text,
+      isPassword: true,
+    ),
+    FormFieldDefinition(
+      label: 'Notes',
+      type: FormFieldType.multiline,
+      isSearchable: true,
+    ),
   ],
   'Joint': [
     FormFieldDefinition(
