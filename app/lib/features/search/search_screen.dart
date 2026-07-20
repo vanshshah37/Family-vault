@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../../core/constants/categories.dart';
 import '../../models/entry.dart';
 import '../../repositories/entry_repository.dart';
+import '../../utils/credential_fields.dart';
+import '../../utils/entry_sort_option.dart';
+import '../../utils/sort_preference_store.dart';
 import '../entries/entry_details_screen.dart';
 
 /// Universal search + category filtering over locally-loaded [Entry] rows.
@@ -14,6 +17,13 @@ import '../entries/entry_details_screen.dart';
 /// and chip selection never touch SQLite. The database is only re-read when
 /// the screen first opens and after returning from [EntryDetailsScreen], per
 /// the approved Phase 09 decisions.
+///
+/// Phase 12 adds sorting (persisted locally via [SortPreferenceStore]) and
+/// tightens matching/preview so a password value can never be the thing
+/// that makes an entry match a search, or appear as its preview text —
+/// both now explicitly skip whichever field [CredentialFields.passwordField]
+/// identifies for that entry's category, plus the reserved internal
+/// metadata keys ([CredentialFields.reservedKeys]).
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -34,12 +44,14 @@ class _SearchScreenState extends State<SearchScreen> {
   _LoadStatus _status = _LoadStatus.loading;
   List<Entry> _allEntries = const [];
   String _selectedCategory = _kAllCategories;
+  EntrySortOption _sortOption = EntrySortOption.recentlyUpdated;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onQueryChanged);
     _loadEntries();
+    _loadSortPreference();
   }
 
   @override
@@ -73,6 +85,17 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _loadSortPreference() async {
+    final option = await SortPreferenceStore.load();
+    if (!mounted) return;
+    setState(() => _sortOption = option);
+  }
+
+  Future<void> _onSortSelected(EntrySortOption option) async {
+    setState(() => _sortOption = option);
+    await SortPreferenceStore.save(option);
+  }
+
   /// Defensive JSON decode — malformed [Entry.data] must never crash the
   /// screen. A malformed entry is treated as having no dynamic fields;
   /// its category/owner still participate in matching.
@@ -92,22 +115,38 @@ class _SearchScreenState extends State<SearchScreen> {
   /// on a search result card. Field label ordering (kFormDefinitions) is
   /// not needed for this — map insertion order from the decoded JSON is
   /// sufficient.
+  ///
+  /// Phase 12: skips the entry's password field (if any) and every
+  /// reserved internal metadata key, so a password value or the
+  /// `updatedBy`/previous-password bookkeeping fields can never end up
+  /// as the visible preview text.
   String? _firstPreviewValue(Entry entry) {
+    final passwordLabel = CredentialFields.passwordField(entry.category)?.label;
     final values = _safeDecodeData(entry.data);
-    for (final value in values.values) {
-      if (value.trim().isNotEmpty) return value;
+    for (final fieldEntry in values.entries) {
+      if (fieldEntry.key == passwordLabel) continue;
+      if (CredentialFields.reservedKeys.contains(fieldEntry.key)) continue;
+      if (fieldEntry.value.trim().isNotEmpty) return fieldEntry.value;
     }
     return null;
   }
 
+  /// Phase 12: excludes the category's password field and every reserved
+  /// metadata key from matching, so typing part of a password (or the
+  /// internal `updatedBy`/previous-password values) can never surface an
+  /// entry via search — everything else about matching is unchanged.
   bool _matchesQuery(Entry entry, String normalizedQuery) {
     if (normalizedQuery.isEmpty) return true;
 
     if (entry.category.toLowerCase().contains(normalizedQuery)) return true;
     if (entry.owner.toLowerCase().contains(normalizedQuery)) return true;
 
+    final passwordLabel = CredentialFields.passwordField(entry.category)?.label;
     final values = _safeDecodeData(entry.data);
     for (final fieldEntry in values.entries) {
+      if (fieldEntry.key == passwordLabel) continue;
+      if (CredentialFields.reservedKeys.contains(fieldEntry.key)) continue;
+
       if (fieldEntry.key.toLowerCase().contains(normalizedQuery)) return true;
       if (fieldEntry.value.toLowerCase().contains(normalizedQuery)) {
         return true;
@@ -118,12 +157,14 @@ class _SearchScreenState extends State<SearchScreen> {
 
   List<Entry> get _filteredEntries {
     final normalizedQuery = _searchController.text.trim().toLowerCase();
-    return _allEntries.where((entry) {
+    final matches = _allEntries.where((entry) {
       final categoryMatches = _selectedCategory == _kAllCategories ||
           entry.category == _selectedCategory;
       if (!categoryMatches) return false;
       return _matchesQuery(entry, normalizedQuery);
     }).toList();
+
+    return EntrySorter.sort(matches, _sortOption);
   }
 
   Future<void> _openEntry(Entry entry) async {
@@ -139,7 +180,10 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: AppBar(
+        title: const Text('Search'),
+        actions: [_buildSortButton(context)],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -155,6 +199,19 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSortButton(BuildContext context) {
+    return PopupMenuButton<EntrySortOption>(
+      icon: const Icon(Icons.sort_rounded),
+      tooltip: 'Sort',
+      initialValue: _sortOption,
+      onSelected: _onSortSelected,
+      itemBuilder: (context) => [
+        for (final option in EntrySortOption.values)
+          PopupMenuItem(value: option, child: Text(option.label)),
+      ],
     );
   }
 
@@ -202,21 +259,34 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     if (_status == _LoadStatus.error) {
-      return const Center(child: Text('Could not load saved entries'));
+      return _buildEmptyState(
+        icon: Icons.error_outline_rounded,
+        title: 'Could not load saved entries',
+      );
     }
 
     if (_allEntries.isEmpty) {
-      return const Center(child: Text('No saved entries yet'));
+      return _buildEmptyState(
+        icon: Icons.lock_outline_rounded,
+        title: 'No entries yet',
+        subtitle: 'Add your first entry from the Dashboard\'s + button.',
+      );
     }
 
     final query = _searchController.text.trim();
     if (query.isEmpty && _selectedCategory == _kAllCategories) {
-      return const Center(child: Text('Search your saved information'));
+      return _buildEmptyState(
+        icon: Icons.search_rounded,
+        title: 'Search your saved information',
+      );
     }
 
     final filtered = _filteredEntries;
     if (filtered.isEmpty) {
-      return const Center(child: Text('No matching entries found'));
+      return _buildEmptyState(
+        icon: Icons.search_off_rounded,
+        title: 'No matching entries found',
+      );
     }
 
     return ListView.builder(
@@ -238,6 +308,31 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(title, style: textTheme.titleMedium, textAlign: TextAlign.center),
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(subtitle, style: textTheme.bodyMedium, textAlign: TextAlign.center),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
