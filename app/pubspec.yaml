@@ -72,14 +72,15 @@ dependencies:
 
   # Auth state (authStateChanges), Google credential sign-in, sign-out.
   # Officially supports Android and Windows.
-  firebase_auth: ^6.4.0
+  firebase_auth: ^6.5.6
 
   # Vaults / members / join-requests storage. Officially supports
   # Android and Windows.
   cloud_firestore: ^6.4.1
 
-  # Android Google Sign-In (official; Android/iOS/Web only).
-  google_sign_in: ^7.0.0
+  # Android Google Sign-In (official; Android/iOS/Web only). 7.2.0's
+  # singleton (`GoogleSignIn.instance`) API — see auth_service.dart.
+  google_sign_in: ^7.2.0
 
   # Windows Google Sign-In via native WebView OAuth. Maintained by
   # Invertase (FlutterFire's maintainers, verified pub.dev publisher).
@@ -88,6 +89,14 @@ dependencies:
 
   # "Share Vault ID" button — native share sheet on Android and Windows.
   share_plus: ^13.1.0
+
+  # --- Phase 12: credential management + UX improvements ---
+
+  # Persists the user's last-selected sort option locally (the one new
+  # dependency approved for Phase 12 — this project's first local
+  # key-value settings store; Phase 11 deliberately avoided adding one
+  # for a similar "remember last vault" feature).
+  shared_preferences: ^2.3.4
 
 dev_dependencies:
   flutter_test:
