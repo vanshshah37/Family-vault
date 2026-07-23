@@ -6,8 +6,10 @@ import '../../features/auth/sign_in_screen.dart';
 import '../../models/family_vault.dart';
 import '../../models/vault_join_request.dart';
 import '../../models/vault_member.dart';
+import '../../navigation/app_router.dart';
 import '../../repositories/vault_repository.dart';
 import '../../services/auth_service.dart';
+import '../../services/vault_lock_controller.dart';
 
 /// Single vault-management surface reached via the one approved
 /// Dashboard AppBar action (final design item 4 — renamed from
@@ -135,6 +137,13 @@ class _VaultSettingsScreenState extends State<VaultSettingsScreen> {
 
   Future<void> _signOut() async {
     await _authService.signOut();
+    // Phase 13: explicit safety net alongside VaultSecurityOverlay's
+    // own authStateChanges listener (which also calls lock() when it
+    // observes a sign-out) — per the approved decision that logging
+    // out of Firebase must always clear the unlocked session. Belt
+    // and suspenders: harmless if VaultSecurityOverlay's listener
+    // already handled it by the time this line runs.
+    VaultLockController.instance.lock();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SignInScreen()),
@@ -169,6 +178,15 @@ class _VaultSettingsScreenState extends State<VaultSettingsScreen> {
                     const SizedBox(height: 24),
                     _buildPendingRequestsSection(),
                   ],
+                  const SizedBox(height: 24),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.security_rounded),
+                      title: const Text('Security'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => AppRouter.openSecuritySettings(context),
+                    ),
+                  ),
                   const SizedBox(height: 32),
                   OutlinedButton.icon(
                     onPressed: _signOut,
