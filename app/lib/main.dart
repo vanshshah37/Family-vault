@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'features/auth/auth_gate_screen.dart';
+import 'features/security/vault_security_overlay.dart';
 import 'firebase_options.dart';
+import 'services/vault_lock_controller.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -32,6 +34,15 @@ Future<void> main() async {
   // and Windows, before this will compile.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Phase 13: reads whether a PIN has ever been configured and the
+  // saved Auto-Lock Timer preference (both local, via
+  // shared_preferences — no dependency on Firebase having resolved
+  // yet), and registers the app-lifecycle observer used for auto-lock.
+  // Entirely independent of Firebase auth state, per the approved
+  // decision — this line has no ordering dependency on the
+  // Firebase.initializeApp() call above.
+  await VaultLockController.instance.initialize();
+
   runApp(const ProviderScope(child: FamilyVaultApp()));
 }
 
@@ -48,6 +59,13 @@ class FamilyVaultApp extends StatelessWidget {
       // only after authentication + vault-membership resolution — see
       // AuthGateScreen → VaultGateScreen → HomeScreen(vaultId: ...).
       home: const AuthGateScreen(),
+      // Phase 13: wraps the ENTIRE app (every route AuthGateScreen and
+      // everything beneath it can navigate to) with the vault-lock
+      // overlay — the single insertion point for Phase 13, chosen so
+      // no other existing screen needs any change to support locking.
+      // See VaultSecurityOverlay's doc comment for the full reasoning.
+      builder: (context, child) => VaultSecurityOverlay(child: child!),
     );
   }
 }
+
