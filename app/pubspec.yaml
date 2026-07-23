@@ -98,6 +98,31 @@ dependencies:
   # for a similar "remember last vault" feature).
   shared_preferences: ^2.3.4
 
+  # --- Phase 13: vault security (PIN lock, biometrics, auto-lock) ---
+
+  # Salted PIN hashing — dart-lang official, actively maintained,
+  # stable API (sha256/Hmac) unchanged for years. The one new
+  # dependency the "do not store plaintext PINs" requirement actually
+  # needs; nothing in Dart's core SDK provides a hash function.
+  crypto: ^3.0.3
+
+  # Biometric (fingerprint) authentication. Officially maintained by
+  # flutter.dev (verified publisher) with genuine Windows support via
+  # the endorsed local_auth_windows federated plugin (Windows Hello) —
+  # verified before adding, since Phase 11 was burned once already by
+  # assuming a package covered Windows when it didn't.
+  #
+  # Pinned to the 2.x line (^2.3.0), NOT the current 3.x line
+  # (3.0.2 at time of writing): 3.x requires Dart SDK 3.10+, above
+  # this project's `environment: sdk: ^3.5.0` constraint, and bumping
+  # that constraint project-wide just for this one package would risk
+  # unrelated dependency-resolution effects — the opposite of "avoid
+  # unnecessary refactoring." 2.3.0 requires only Dart 3.2+ (well
+  # within range) and exposes the exact same stable API this project
+  # uses (canCheckBiometrics/isDeviceSupported/getAvailableBiometrics/
+  # authenticate) — nothing here depends on any 3.x-only addition.
+  local_auth: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
