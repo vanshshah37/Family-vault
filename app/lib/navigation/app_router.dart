@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../features/entries/entry_list_screen.dart';
 import '../features/search/search_screen.dart';
+import '../features/security/security_settings_screen.dart';
 import '../features/universal_entry/universal_entry_screen.dart';
 import '../features/vault/vault_settings_screen.dart';
 
@@ -68,6 +69,20 @@ class AppRouter {
       MaterialPageRoute(
         builder: (_) => VaultSettingsScreen(vaultId: vaultId),
       ),
+    );
+  }
+
+  /// Phase 13: reached from [VaultSettingsScreen]'s "Security" row —
+  /// an ordinary, back-able destination like every other method here.
+  /// The lock/setup screens themselves (`LockScreen`/`PinSetupScreen`)
+  /// deliberately do NOT go through this router — they're drawn by
+  /// `VaultSecurityOverlay` on top of the whole app via `Stack`, not
+  /// pushed as a route, so they can appear regardless of navigation
+  /// depth without needing a `navigatorKey`.
+  static Future<void> openSecuritySettings(BuildContext context) {
+    return Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SecuritySettingsScreen()),
     );
   }
 }
